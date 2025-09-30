@@ -197,75 +197,94 @@ const WorkerDashboard = () => {
                   <CardContent className="p-8 text-center">
                     <p className="text-muted-foreground">У вас нет активных задач</p>
                   </CardContent>
-                </Card> : currentTasks.map(task => <Card key={task.uuid_zadachi} className="hover:shadow-md transition-shadow">
-                    <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <CardTitle className="text-lg">{task.title}</CardTitle>
+                </Card> : currentTasks.map(task => {
+                  const timeLeft = calculateTimeRemaining(task.due_date);
+                  const isOverdue = timeLeft.isOverdue;
+                  
+                  return (
+                    <Card key={task.uuid_zadachi} className="overflow-hidden border-2">
+                      {/* Верхняя секция с ценой и временем */}
+                      <div className={`p-6 ${isOverdue ? 'bg-destructive/5' : 'bg-primary/5'}`}>
+                        <div className="flex items-center justify-between gap-6">
+                          {/* Таймер - слева */}
+                          <div className="flex-1">
+                            <div className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">
+                              {isOverdue ? '⚠️ Просрочено' : '⏱ Осталось времени'}
+                            </div>
+                            <div className={`font-display font-bold ${isOverdue ? 'text-destructive' : 'text-primary'}`} 
+                                 style={{ fontSize: '3.5rem', lineHeight: '1', letterSpacing: '-0.02em' }}>
+                              {String(timeLeft.hours).padStart(2, '0')}:{String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')}
+                            </div>
+                          </div>
+                          
+                          {/* Разделитель */}
+                          <div className="w-px h-20 bg-border" />
+                          
+                          {/* Цена - справа */}
+                          <div className="flex-1 text-right">
+                            <div className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">
+                              💰 Оплата
+                            </div>
+                            <div className="font-display font-bold text-success" 
+                                 style={{ fontSize: '3.5rem', lineHeight: '1', letterSpacing: '-0.02em' }}>
+                              {task.salary} ₽
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Основная информация */}
+                      <CardContent className="p-6">
+                        <div className="space-y-4">
+                          {/* Заголовок и приоритет */}
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1">
+                              <h3 className="text-xl font-bold mb-2">{task.title}</h3>
+                              {task.description && (
+                                <p className="text-muted-foreground text-sm leading-relaxed">
+                                  {task.description}
+                                </p>
+                              )}
+                            </div>
+                            <Badge 
+                              variant={task.priority === 'high' ? 'destructive' : task.priority === 'medium' ? 'default' : 'secondary'}
+                              className="text-xs uppercase font-semibold px-3 py-1"
+                            >
+                              {task.priority === 'high' ? '🔴 Высокий' : task.priority === 'medium' ? '🟡 Средний' : '🟢 Низкий'}
+                            </Badge>
+                          </div>
+
+                          {/* Информация о заказе */}
                           {(task as any).zakazi && (
-                            <div className="flex items-center gap-2 mt-2">
-                              <FileText className="h-4 w-4 text-primary" />
-                              <p className="text-sm text-muted-foreground">
-                                <span className="font-medium">{(task as any).zakazi.title}</span>
-                                <span className="mx-1.5">·</span>
-                                <span className="italic">{(task as any).zakazi.client_name}</span>
-                              </p>
+                            <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+                              <FileText className="h-5 w-5 text-primary flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-medium truncate">{(task as any).zakazi.title}</div>
+                                <div className="text-xs text-muted-foreground truncate">{(task as any).zakazi.client_name}</div>
+                              </div>
                             </div>
                           )}
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <Badge variant={task.priority === 'high' ? 'destructive' : 'secondary'} className="text-base px-4 py-2">
-                            {task.priority}
-                          </Badge>
-                          <Badge variant="outline" className="text-3xl px-6 py-4 font-bold">
-                            {task.salary} ₽
-                          </Badge>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        <p className="text-muted-foreground">{task.description}</p>
-                        
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1 space-y-4">
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                              <div className="flex items-center gap-1">
-                                <Calendar className="h-4 w-4" />
-                                Срок: {formatTime(task.due_date)}
-                              </div>
-                            </div>
 
-                            <div className="flex items-center gap-2">
-                              <Button onClick={() => setSelectedTask(task)} className="flex items-center gap-2">
-                                <CheckCircle className="h-4 w-4" />
-                                Завершить задачу
-                              </Button>
-                              
-                              <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                                <Camera className="h-4 w-4" />
-                                Требуется фото
-                              </div>
-                            </div>
+                          {/* Срок выполнения */}
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Calendar className="h-4 w-4" />
+                            <span>Срок: {formatTime(task.due_date)}</span>
                           </div>
 
-                          <div className="flex-shrink-0">
-                            {(() => {
-                        const timeLeft = calculateTimeRemaining(task.due_date);
-                        return <div className={`text-center py-6 px-8 rounded-lg ${timeLeft.isOverdue ? 'bg-destructive/10 animate-pulse' : 'bg-primary/10 animate-pulse'}`}>
-                                  <div className="text-sm text-muted-foreground mb-2">Осталось времени:</div>
-                                  <div className={`font-display font-bold text-5xl ${timeLeft.isOverdue ? 'text-destructive' : 'text-primary'}`}>
-                                    {String(timeLeft.hours).padStart(2, '0')}:
-                                    {String(timeLeft.minutes).padStart(2, '0')}:
-                                    {String(timeLeft.seconds).padStart(2, '0')}
-                                  </div>
-                                </div>;
-                      })()}
-                          </div>
+                          {/* Кнопка завершения */}
+                          <Button 
+                            onClick={() => setSelectedTask(task)} 
+                            className="w-full h-14 text-base font-semibold gap-2 bg-success hover:bg-success/90"
+                            size="lg"
+                          >
+                            <Camera className="h-5 w-5" />
+                            Завершить задачу с фото
+                          </Button>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>)}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
             </div>
           </TabsContent>
 
