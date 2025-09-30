@@ -101,6 +101,11 @@ const TaskCompletionDialog: React.FC<TaskCompletionDialogProps> = ({
 
       // Update responsible user's salary if task has salary and responsible user
       if (task.responsible_user_id && task.salary && task.salary > 0) {
+        // Проверяем, просрочена ли задача
+        const isOverdue = task.due_date && new Date(task.due_date) < new Date();
+        const hasPenalty = isOverdue;
+        const actualPayment = hasPenalty ? Math.round(task.salary * 0.9) : task.salary;
+        
         // Get current user salary and completed tasks
         const { data: userData, error: userFetchError } = await supabase
           .from('users')
@@ -112,7 +117,7 @@ const TaskCompletionDialog: React.FC<TaskCompletionDialogProps> = ({
           console.error('Error fetching user salary:', userFetchError);
         } else {
           const currentSalary = userData?.salary || 0;
-          const newSalary = currentSalary + task.salary;
+          const newSalary = currentSalary + actualPayment;
 
           // Get current completed tasks array
           const currentCompletedTasks = (userData as any)?.completed_tasks || [];
@@ -123,7 +128,8 @@ const TaskCompletionDialog: React.FC<TaskCompletionDialogProps> = ({
           if (!taskAlreadyExists) {
             const newCompletedTask = {
               task_id: task.id_zadachi,
-              payment: task.salary
+              payment: actualPayment,
+              has_penalty: hasPenalty
             };
             const updatedCompletedTasks = [...currentCompletedTasks, newCompletedTask];
 

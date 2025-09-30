@@ -47,6 +47,7 @@ interface Worker {
   completed_tasks?: Array<{
     task_id: number;
     payment: number;
+    has_penalty?: boolean;
     task_title?: string;
     order_title?: string;
     completed_date?: string;
@@ -435,10 +436,15 @@ export const WorkerDetailsDialog = ({ worker, open, onOpenChange }: WorkerDetail
                           )}
                         </div>
                         
-                        <div className="text-right ml-4">
+                        <div className="text-right ml-4 space-y-2">
                           <Badge className="bg-success/10 text-success border-success/20 font-display font-semibold text-lg px-4 py-2">
                             +{Number(task.payment).toLocaleString('ru-RU')} ₽
                           </Badge>
+                          {task.has_penalty && (
+                            <Badge variant="destructive" className="block text-xs">
+                              Оплата со штрафом 10%
+                            </Badge>
+                          )}
                         </div>
                       </div>
                     </div>

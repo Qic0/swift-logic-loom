@@ -160,6 +160,11 @@ const TaskDetailsDialog = ({
           console.log('Updating salary for user:', task.responsible_user_id);
         }
         
+        // Проверяем, просрочена ли задача
+        const isOverdue = task.due_date && new Date(task.due_date) < new Date();
+        const hasPenalty = isOverdue;
+        const actualPayment = hasPenalty ? Math.round(task.salary * 0.9) : task.salary;
+        
         // Get current user salary and completed tasks
         const { data: userData, error: userFetchError } = await supabase
           .from('users')
@@ -171,9 +176,9 @@ const TaskDetailsDialog = ({
           console.error('Error fetching user salary:', userFetchError);
         } else {
           const currentSalary = userData?.salary || 0;
-          const newSalary = currentSalary + task.salary;
+          const newSalary = currentSalary + actualPayment;
           if (process.env.NODE_ENV === 'development') {
-            console.log('Current salary:', currentSalary, 'Adding:', task.salary, 'New salary:', newSalary);
+            console.log('Current salary:', currentSalary, 'Adding:', actualPayment, 'New salary:', newSalary, 'Has penalty:', hasPenalty);
           }
 
           // Get current completed tasks array
@@ -185,7 +190,8 @@ const TaskDetailsDialog = ({
           if (!taskAlreadyExists) {
             const newCompletedTask = {
               task_id: task.id_zadachi,
-              payment: task.salary
+              payment: actualPayment,
+              has_penalty: hasPenalty
             };
             const updatedCompletedTasks = [...currentCompletedTasks, newCompletedTask];
 
@@ -224,10 +230,15 @@ const TaskDetailsDialog = ({
         }
       }
 
+      const isOverdue = task.due_date && new Date(task.due_date) < new Date();
+      const actualPayment = isOverdue && task.salary ? Math.round(task.salary * 0.9) : task.salary;
+      
       toast({
         title: "Задача завершена",
         description: task.salary && task.salary > 0 
-          ? `Задача выполнена. Зарплата увеличена на ${task.salary} ₽`
+          ? isOverdue 
+            ? `Задача выполнена с штрафом. Зарплата увеличена на ${actualPayment} ₽ (10% штраф за просрочку)`
+            : `Задача выполнена. Зарплата увеличена на ${actualPayment} ₽`
           : "Задача успешно помечена как выполненная."
       });
       
@@ -371,7 +382,21 @@ const TaskDetailsDialog = ({
                   <Banknote className="w-5 h-5 text-muted-foreground" />
                   <div>
                     <p className="text-sm text-muted-foreground">Зарплата</p>
-                    <p className="font-semibold">{task.salary ? `${task.salary} ₽` : '—'}</p>
+                    {task.salary ? (
+                      task.status !== 'completed' && task.due_date && new Date(task.due_date) < new Date() ? (
+                        <div className="space-y-1">
+                          <p className="font-semibold text-muted-foreground line-through">{task.salary} ₽</p>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="destructive" className="text-xs">Штраф 10%</Badge>
+                            <p className="font-semibold text-destructive">{Math.round(task.salary * 0.9)} ₽</p>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="font-semibold">{task.salary} ₽</p>
+                      )
+                    ) : (
+                      <p className="font-semibold">—</p>
+                    )}
                   </div>
                 </div>
 
